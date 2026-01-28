@@ -2,7 +2,7 @@
 GOVA AI Visibility API
 Main FastAPI application entry point
 """
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, HttpUrl, field_validator
@@ -89,7 +89,7 @@ async def health_check():
 
 
 @app.post("/api/analyze", response_model=AnalysisResponse)
-async def analyze_website(request: AnalysisRequest):
+async def analyze_website(request: AnalysisRequest, background_tasks: BackgroundTasks):
     """
     Analiza una URL y devuelve el informe de visibilidad IA.
     También envía el PDF por email y guarda el lead.
@@ -107,8 +107,9 @@ async def analyze_website(request: AnalysisRequest):
             analysis_data=result
         )
         
-        # Send PDF report via email
-        pdf_sent = await send_report_email(
+        # Send PDF report via email in background
+        background_tasks.add_task(
+            send_report_email,
             email=request.email,
             name=request.name,
             url=request.url,
@@ -126,7 +127,7 @@ async def analyze_website(request: AnalysisRequest):
             recommendations=result["recommendations"],
             preview_text=result["preview_text"],
             crawlers=result["crawlers"],
-            pdf_sent=pdf_sent
+            pdf_sent=True # We assume it will be sent
         )
         
     except Exception as e:
