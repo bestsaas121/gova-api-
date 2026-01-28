@@ -13,14 +13,26 @@ def generate_pdf(url: str, name: Optional[str], analysis: Dict[str, Any]) -> byt
     Generate a PDF report from analysis results.
     Returns PDF as bytes.
     """
-    html_content = render_pdf_html(url, name, analysis)
-    
-    # Generate PDF
-    pdf_file = io.BytesIO()
-    HTML(string=html_content).write_pdf(pdf_file)
-    pdf_file.seek(0)
-    
-    return pdf_file.read()
+    try:
+        print(f"Generating PDF for {url}...")
+        html_content = render_pdf_html(url, name, analysis)
+        print(f"HTML rendered, length: {len(html_content)}")
+        
+        # Generate PDF
+        pdf_file = io.BytesIO()
+        print("Creating weasyprint HTML object...")
+        html = HTML(string=html_content)
+        print("Writing PDF to buffer...")
+        html.write_pdf(pdf_file)
+        print("PDF written successfully")
+        
+        pdf_file.seek(0)
+        return pdf_file.read()
+    except Exception as e:
+        print(f"CRITICAL ERROR in generate_pdf: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise e
 
 
 def render_pdf_html(url: str, name: Optional[str], analysis: Dict[str, Any]) -> str:

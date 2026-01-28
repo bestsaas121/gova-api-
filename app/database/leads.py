@@ -20,16 +20,18 @@ def get_supabase_client() -> Optional[Any]:
     if not SUPABASE_AVAILABLE:
         return None
     
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
+    url = os.getenv("SUPABASE_URL", "").strip()
+    key = os.getenv("SUPABASE_KEY", "").strip()
     
     if not url or not key:
+        print("Supabase credentials not found in environment")
         return None
     
     try:
+        print(f"Initializing Supabase with URL: {url[:20]}...")
         return create_client(url, key)
     except Exception as e:
-        print(f"Error initializing Supabase client: {e}")
+        print(f"Error initializing Supabase client: {str(e)}")
         return None
 
 
