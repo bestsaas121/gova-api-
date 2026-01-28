@@ -10,13 +10,23 @@ def generate_recommendations(
     structure_data: Dict[str, Any],
     robots_data: Dict[str, Any],
     schema_data: Dict[str, Any],
-    scores: Dict[str, Any]
+    scores: Dict[str, Any],
+    is_ai_blocked: bool = False
 ) -> List[Dict[str, Any]]:
     """
     Generate prioritized recommendations based on analysis results.
     """
     recommendations = []
     breakdown = scores.get("breakdown", {})
+    
+    # 0. AI Bot Blocking (WAF/Cloudflare) - CRITICAL
+    if is_ai_blocked:
+        recommendations.append({
+            "priority": "critical",
+            "title": "Tu servidor bloquea activamente a las IAs",
+            "description": "Hemos detectado que tu WAF (como Cloudflare) bloquea el User-Agent de GPTBot. Esto hace que seas invisible para ChatGPT.",
+            "impact": "Acceso totalmente denegado para la mayoría de modelos de IA."
+        })
     
     # 1. Check SPA/Empty content - CRITICAL
     if content_data.get("is_spa_empty", False):

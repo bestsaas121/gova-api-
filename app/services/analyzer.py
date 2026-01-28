@@ -39,11 +39,36 @@ HEADERS = {
 }
 
 
-async def fetch_url(url: str, timeout: int = 30) -> tuple[str, int]:
-    """Fetch URL content without JavaScript execution"""
+# Generic User Agent for fallback
+GENERIC_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+}
+
+
+async def fetch_url(url: str, timeout: int = 30) -> tuple[str, int, bool]:
+    """
+    Fetch URL content. 
+    Returns: (html_content, status_code, is_ai_blocked)
+    """
     async with httpx.AsyncClient(follow_redirects=True, timeout=timeout) as client:
-        response = await client.get(url, headers=HEADERS)
-        return response.text, response.status_code
+        # Step 1: Try with AI User Agent
+        try:
+            response = await client.get(url, headers=HEADERS)
+            if response.status_code == 200:
+                return response.text, 200, False
+            
+            # If blocked (403/401), try fallback
+            if response.status_code in [401, 403]:
+                print(f"AI User Agent blocked (Status {response.status_code}). Trying fallback...")
+                fallback_response = await client.get(url, headers=GENERIC_HEADERS)
+                return fallback_response.text, fallback_response.status_code, True
+                
+            return response.text, response.status_code, False
+        except Exception as e:
+            print(f"Fetch error: {e}")
+            return "", 500, False
 
 
 async def analyze_url(url: str) -> Dict[str, Any]:
@@ -52,7 +77,7 @@ async def analyze_url(url: str) -> Dict[str, Any]:
     Fetches the URL and analyzes its visibility for AI crawlers.
     """
     # Fetch HTML content
-    html_content, status_code = await fetch_url(url)
+    html_content, status_code, is_ai_blocked = await fetch_url(url)
     
     if status_code >= 400:
         return {
@@ -60,11 +85,11 @@ async def analyze_url(url: str) -> Dict[str, Any]:
             "status": "error",
             "emoji": "❌",
             "error": f"No se pudo acceder a la URL (código {status_code})",
-            "summary": {},
+            "summary": {"is_ai_blocked": True},
             "breakdown": {},
-            "recommendations": [],
+            "recommendations": ["El servidor bloquea el acceso a clientes externos. Revisa tu WAF o Cloudflare."],
             "preview_text": "",
-            "crawlers": {}
+            "crawlers": {"GPTBot": "blocked"}
         }
     
     # Parse HTML
@@ -89,7 +114,8 @@ async def analyze_url(url: str) -> Dict[str, Any]:
         content_data=content_data,
         structure_data=structure_data,
         robots_data=crawlers_status,
-        schema_data=schema_data
+        schema_data=schema_data,
+        is_ai_blocked=is_ai_blocked
     )
     
     # Get overall status
@@ -102,7 +128,8 @@ async def analyze_url(url: str) -> Dict[str, Any]:
         structure_data=structure_data,
         robots_data=crawlers_status,
         schema_data=schema_data,
-        scores=scores
+        scores=scores,
+        is_ai_blocked=is_ai_blocked
     )
     
     # Create preview text (first 500 chars of visible content)

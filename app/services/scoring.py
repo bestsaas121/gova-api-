@@ -50,7 +50,8 @@ def calculate_score(
     content_data: Dict[str, Any],
     structure_data: Dict[str, Any],
     robots_data: Dict[str, Any],
-    schema_data: Dict[str, Any]
+    schema_data: Dict[str, Any],
+    is_ai_blocked: bool = False
 ) -> Dict[str, Any]:
     """
     Calculate the overall visibility score.
@@ -233,8 +234,26 @@ def calculate_score(
         "detail": ", ".join(schema_data.get("types", []))[:50] if schema_data.get("types") else "No detectado"
     }
     
+    # 10. AI Bot Accessibility (WAF/Cloudflare)
+    if not is_ai_blocked:
+        ai_bot_score = 0
+        ai_bot_status = "excellent"
+        ai_bot_detail = "Acceso permitido"
+    else:
+        ai_bot_score = -50  # Heavy penalty
+        ai_bot_status = "critical"
+        ai_bot_detail = "Bloqueado por WAF/Cloudflare"
+    
+    breakdown["ai_access"] = {
+        "score": ai_bot_score,
+        "max": 0,  # Penalty only
+        "status": ai_bot_status,
+        "detail": ai_bot_detail
+    }
+
     # Calculate total
     total = sum(item["score"] for item in breakdown.values())
+    total = max(0, min(100, total))
     
     return {
         "total": total,

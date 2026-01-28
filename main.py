@@ -19,8 +19,14 @@ load_dotenv()
 app = FastAPI(
     title="GOVA AI Visibility API",
     description="Analiza la visibilidad de sitios web para crawlers de IA",
-    version="1.0.0"
+    version="1.0.1",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "version": "1.0.1"}
 
 # CORS configuration
 origins = os.getenv("CORS_ORIGINS", "http://localhost:4321").split(",")
