@@ -120,6 +120,22 @@ async def send_report_email(
         </html>
         """
         
+        # Prepare email parameters
+        email_from = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
+        
+        params: resend.Emails.SendParams = {
+            "from": email_from,
+            "to": [email],
+            "subject": f"Análisis de Visibilidad IA - {domain}",
+            "html": html_content,
+            "attachments": [
+                {
+                    "content": pdf_base64,
+                    "filename": filename
+                }
+            ]
+        }
+        
         # Send email via Resend
         try:
             resend.Emails.send(params)
