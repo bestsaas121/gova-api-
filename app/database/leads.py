@@ -26,7 +26,11 @@ def get_supabase_client() -> Optional[Any]:
     if not url or not key:
         return None
     
-    return create_client(url, key)
+    try:
+        return create_client(url, key)
+    except Exception as e:
+        print(f"Error initializing Supabase client: {e}")
+        return None
 
 
 async def save_lead(
