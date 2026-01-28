@@ -121,22 +121,13 @@ async def send_report_email(
         """
         
         # Send email via Resend
-        params = {
-            "from": os.getenv("EMAIL_FROM", "GOVA <informes@govarank.com>"),
-            "to": [email],
-            "subject": f"📊 Tu Informe de Visibilidad IA - {domain}",
-            "html": html_content,
-            "attachments": [
-                {
-                    "filename": filename,
-                    "content": pdf_base64
-                }
-            ]
-        }
-        
-        resend.Emails.send(params)
-        return True
+        try:
+            resend.Emails.send(params)
+            return True
+        except Exception as e:
+            print(f"Resend error: {e}")
+            return False
         
     except Exception as e:
-        print(f"Error sending email: {e}")
+        print(f"Error preparing or sending email: {e}")
         return False
